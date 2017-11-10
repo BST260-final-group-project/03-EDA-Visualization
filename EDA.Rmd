@@ -1,0 +1,150 @@
+---
+title: "EDA"
+author: "Jian Kang"
+date: "11/9/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, include=FALSE}
+library(readr)
+train <- read_csv("~/Desktop/Harvard/BST260/GroupProject/260Project/train.csv")
+test <- read_csv("~/Desktop/Harvard/BST260/GroupProject/260Project/test.csv")
+```
+
+
+```{r}
+library(MASS)
+library(leaps)
+library(olsrr)
+library(dplyr)
+```
+
+##Stepwise
+```{r}
+#mod_step <- step(lm(SalePrice ~ 1, data = train), ~ MSSubClass + MSZoning + LotFrontage + LotArea + Street + Alley + LotShape + LandContour + Utilities + LotConfig + LandSlope + Neighborhood + Condition1 + Condition2 + BldgType + HouseStyle + OverallQual + OverallCond + YearBuilt + YearRemodAdd + RoofStyle + RoofMatl + Exterior1st + Exterior2nd + MasVnrType + MasVnrArea + ExterQual + ExterCond + Foundation + BsmtQual + BsmtCond + BsmtExposure + BsmtFinType1 + BsmtFinSF1 + BsmtFinType2 + BsmtFinSF2 + BsmtUnfSF + TotalBsmtSF + Heating + HeatingQC + CentralAir + Electrical + 1stFlrSF + 2ndFlrSF + LowQualFinSF + GrLivArea + BsmtFullBath + BsmtHalfBath + FullBath + FullBath + Bedroom + Kitchen + KitchenQual + TotRmsAbvGrd + Fireplaces + FireplaceQu + Functional + GarageType + GarageYrBlt + GarageFinish + GarageCars + GarageArea + GarageQual + GarageCond + PavedDrive + WoodDeckSF + OpenPorchSF + EnclosedPorch + 3SsnPorch + ScreenPorch + PoolArea + PoolQC + Fence + MiscFeature + MiscVal + MoSold + YrSold + SaleType + SaleCondition, direction = "both")
+
+#summary(mod_step)
+
+#mod_step2 <- lm(SalePrice ~ ., data = train)
+#ols_stepaic_both(mod_step2)
+```
+
+##Correlation
+```{r}
+cors = cor(train[ , sapply(train, is.numeric)])
+high_cor = which(abs(cors) > 0.6 & (abs(cors) < 1))
+rows = rownames(cors)[((high_cor-1) %/% 38)+1]
+cols = colnames(cors)[ifelse(high_cor %% 38 == 0, 38, high_cor %% 38)]
+vals = cors[high_cor]
+
+cor_data = data.frame(cols=cols, rows=rows, correlation=vals)
+cor_data
+
+#The table shows that 11 variables have correlations above 0.6, leaving out the target variable SalesPrice. The highest correlation is between GarageCars and GarageArea, which makes sense because we'd expect a garage that can park more cars to have more area. Highly correlated variables can cause problems with certain types of predictive models but since no variable pairs have a correlations above 0.9 and we will be using a tree-based model, let's keep them all.
+```
+
+##lowess
+```{r, include=TRUE, echo=TRUE}
+for (col in colnames(train)){
+  if(is.numeric(train[,col])){
+    scatter.smooth(train[,col], train$SalePrice, main=col)
+  }
+}
+```
+
+##Combination based on correlation
+```{r}
+
+# Add variable that combines above grade living area with basement sq footage
+train$total_sq_footage = train$GrLivArea + train$TotalBsmtSF
+test$total_sq_footage = test$GrLivArea + test$TotalBsmtSF
+
+# Add variable that combines above ground and basement full and half baths
+train$total_baths = train$BsmtFullBath + train$FullBath + (0.5 * (train$BsmtHalfBath + train$HalfBath))
+test$total_baths = test$BsmtFullBath + test$FullBath + (0.5 * (test$BsmtHalfBath + test$HalfBath))
+
+# Remove Id since it should have no value in prediction
+train$Id = NULL    
+test$Id = NULL
+```
+
+##Transformation
+```{r}
+train$logPrice <- log(train$SalePrice)
+summary(train$logPrice)
+boxplot(train$logPrice)
+library(ggplot2)
+ggplot(train, aes(logPrice)) + geom_histogram(aes(y=..density..), position = "identity",  bins = 50, alpha = .5) + geom_density(alpha = .3)
+```
+
+
+
+
+##LASSO
+```{r}
+#Initialization
+X116preprocessed <- read_csv("~/Desktop/Harvard/BST260/GroupProject/260Project/116preprocessed.csv")
+
+my.RMSE = function(model, x, y, round = T, ...){
+  pred_valid = predict(model, x, ...)
+  if(isTRUE(round))
+    pred_valid  = log(round(exp(pred_valid)/100, digits = 0)*100)
+  sqrt(mean((pred_valid - y)**2))
+}
+
+id_outliers = c(524, 1299, 1183, 692)
+
+library(caret)
+set.seed(260)
+idx = createDataPartition(1:1455, p = .85, list = F)
+
+##JOIN
+library(dplyr)
+X116preprocessed$SalePrice <- train$SalePri ce[train$Id %in% c(1:1459)]
+X116preprocessed$logPrice <- log(X116preprocessed$SalePrice)
+
+trainla = X116preprocessed[!"Id" %in% id_outliers, !colnames(X116preprocessed) %in% c("Id", "SalePrice")]
+
+train.x = trainla[, colnames(trainla) != "logPrice"]
+train.y = trainla[, colnames(trainla) == "logPrice"]
+
+train_sub.x = train.x[idx,]
+train_sub.y = train.y[idx,]
+
+valid.x = train.x[-idx,]
+valid.y = train.y[-idx,]
+
+#LASSO
+library(glmnet)
+resGLM = glmnet(as.matrix(train_sub.x), train_sub.y$logPrice, lambda = .001, alpha = 1)
+Lassocoef <- coef.glmnet(resGLM)
+Lassocoef[order(abs(Lassocoef)),]
+
+my.RMSE(resGLM, as.matrix(train_sub.x), train_sub.y$logPrice)
+my.RMSE(resGLM, as.matrix(valid.x), valid.y$logPrice)
+```
+
+
+##PCA
+```{r}
+drops <- c("MasVnrArea","BsmtFinSF2", "BsmtFullBath", "BsmtHalfBath", "GarageCars", "MSZoning_2", "Utilities_1", "Exterior1st_8", "Exterior2nd_8", "KitchenQual_3", "Functional_0", "SaleType_6", "Id", "SalePrice")
+
+fit <- princomp(preprocessed) #, cor=TRUE
+summary(fit) # print variance accounted for 
+loadings(fit) # pc loadings 
+plot(fit,type="lines") # scree plot 
+fit$scores # the principal components
+biplot(fit)
+
+# Varimax Rotated Principal Components
+vari <- preprocessed[ , !(names(preprocessed) %in% drops)]
+library(psych)
+fit <- principal(vari, nfactors=50, rotate="varimax")
+fit # print results
+```
+
