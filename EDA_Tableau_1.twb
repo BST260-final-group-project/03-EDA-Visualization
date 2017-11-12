@@ -1711,6 +1711,32 @@
     </datasource>
   </datasources>
   <worksheets>
+    <worksheet name='Sheet 4'>
+      <table>
+        <view>
+          <datasources>
+            <datasource caption='train_and_test' name='federated.0fbry160tccv471co1qly12l575d' />
+          </datasources>
+          <datasource-dependencies datasource='federated.0fbry160tccv471co1qly12l575d'>
+            <column caption='Pool QC' datatype='string' name='[PoolQC]' role='dimension' type='nominal' />
+            <column-instance column='[PoolQC]' derivation='Count' name='[cnt:PoolQC:qk]' pivot='key' type='quantitative' />
+            <column-instance column='[PoolQC]' derivation='None' name='[none:PoolQC:nk]' pivot='key' type='nominal' />
+          </datasource-dependencies>
+          <aggregation value='true' />
+        </view>
+        <style />
+        <panes>
+          <pane selection-relaxation-option='selection-relaxation-allow'>
+            <view>
+              <breakdown value='auto' />
+            </view>
+            <mark class='Automatic' />
+          </pane>
+        </panes>
+        <rows>[federated.0fbry160tccv471co1qly12l575d].[cnt:PoolQC:qk]</rows>
+        <cols>[federated.0fbry160tccv471co1qly12l575d].[none:PoolQC:nk]</cols>
+      </table>
+    </worksheet>
     <worksheet name='garage qual vs basement qual'>
       <table>
         <view>
@@ -1890,7 +1916,29 @@
         </highlight>
       </viewpoint>
     </window>
-    <window class='worksheet' maximized='true' name='garage qual vs basement qual'>
+    <window class='worksheet' name='garage qual vs basement qual'>
+      <cards>
+        <edge name='left'>
+          <strip size='160'>
+            <card type='pages' />
+            <card type='filters' />
+            <card type='marks' />
+          </strip>
+        </edge>
+        <edge name='top'>
+          <strip size='2147483647'>
+            <card type='columns' />
+          </strip>
+          <strip size='2147483647'>
+            <card type='rows' />
+          </strip>
+          <strip size='31'>
+            <card type='title' />
+          </strip>
+        </edge>
+      </cards>
+    </window>
+    <window class='worksheet' maximized='true' name='Sheet 4'>
       <cards>
         <edge name='left'>
           <strip size='160'>
@@ -1914,6 +1962,63 @@
     </window>
   </windows>
   <thumbnails>
+    <thumbnail height='192' name='Sheet 4' width='192'>
+      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
+      SUVORK5CYII=
+    </thumbnail>
     <thumbnail height='192' name='garage qual vs basement qual' width='192'>
       iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAACXBIWXMAAA7DAAAOwwHHb6hk
       AAAVaUlEQVR4nO3dyW8cV37A8W9V783uZpNsrhIXSRQlarWszZY9nvFkMAiQmQC5JP9Agpxy
