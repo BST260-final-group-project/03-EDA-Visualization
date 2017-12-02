@@ -66,3 +66,15 @@ boxplot(fillna_train$logPrice)
 library(ggplot2)
 ggplot(fillna_train, aes(logPrice)) + geom_histogram(aes(y=..density..), position = "identity",  bins = 50, alpha = .5) + geom_density(alpha = .3)
 ```
+
+## PCA
+
+```{r}
+feature_train$logPrice <- log(feature_train$SalePrice)
+nums <- sapply(feature_train, is.numeric)
+feature.pca <- prcomp(feature_train[ , nums],
+                 center = TRUE,
+                 scale. = TRUE) 
+summary(feature.pca)
+plot(feature.pca, type = "l")
+```
