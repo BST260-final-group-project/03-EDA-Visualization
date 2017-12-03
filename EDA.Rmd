@@ -77,4 +77,28 @@ feature.pca <- prcomp(feature_train[ , nums],
                  scale. = TRUE) 
 summary(feature.pca)
 plot(feature.pca, type = "l")
+
+#another data set
+pcadata <- fillna_train
+pcadata <- pcadata[, -c(1,2)]
+pcadata <- pcadata[, colSums(pcadata != 0) > 0]
+pcadata <- pcadata[,!apply(pcadata, MARGIN = 2, function(x) max(x, na.rm = TRUE) == min(x, na.rm = TRUE))]
+
+pca1 <- prcomp(pcadata,
+                 center = TRUE,
+                 scale. = TRUE) 
+summary(pca1)
+plot(pca1, type = "l")
+
+
+##plot
+library(ggplot2)
+scores = as.data.frame(pca1$x)
+mainpca <- as.data.frame(pca1$rotation[1:50,1:4])
+
+ggplot(data = mainpca, aes(x = PC1, y = PC2, label = rownames(mainpca))) +  
+  geom_hline(yintercept = 0, colour = "gray65") +
+  geom_vline(xintercept = 0, colour = "gray65") +
+  geom_text(colour = "tomato", alpha = 0.8, size = 4) +
+  ggtitle("PCA plot")
 ```
